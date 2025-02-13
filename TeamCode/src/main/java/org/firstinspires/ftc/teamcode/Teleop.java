@@ -93,7 +93,7 @@ import java.util.List;
 //BHI260AP is the IMU
 
 @TeleOp(name="3 wheelie funsies", group="OpMode")
-public class Teleop extends LinearOpMode {
+public class                           Teleop extends LinearOpMode {
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime           = new ElapsedTime();
     private DcMotor leftBackDrive         = null;
@@ -105,7 +105,7 @@ public class Teleop extends LinearOpMode {
 
     static double LowerByDef = 1;
 
-    static double Kp=.01, Ki=0;
+    static double Kp=.00001, Ki=0.0;
     PIController HeadingPID = new PIController();
 
     @Override
@@ -205,7 +205,7 @@ public class Teleop extends LinearOpMode {
 
         double LowerPowerBy = 1;
         boolean LowerModeToggle = false;
-        double YawOffset = 0;
+        double YawOffsetDEG = 0;
         Buttons ButtonMonitor = new Buttons(false);
         setZPBrake();
         boolean ZPFloatToggle = false;
@@ -300,7 +300,7 @@ public class Teleop extends LinearOpMode {
             Orientation robotOrientation = BHI260AP.getRobotOrientation(
                     AxesReference.INTRINSIC,
                     AxesOrder.XYZ,
-                    AngleUnit.RADIANS
+                    AngleUnit.DEGREES
             );
             double theta = Math.atan2(lefty, leftx);
             double Roll  = robotOrientation.firstAngle; // X - Roll
@@ -308,13 +308,14 @@ public class Teleop extends LinearOpMode {
             double Yaw   = robotOrientation.thirdAngle; // Z - Yaw
             Yaw = Yaw<0? Yaw+360: Yaw;
             if (ButtonMonitor.wasPressed(buttonName.cross))
-                YawOffset = resetYaw();
+                YawOffsetDEG = resetYawDEG();
             if (ButtonMonitor.wasPressed(buttonName.square))
                 BHI260AP.resetYaw();
 
-            double Direction1 = Math.sin(theta + Math.PI/4 - YawOffset); // https://www.desmos.com/calculator/rqqamhfeek
-            double Direction2 = Math.sin(theta - Math.PI/4 - YawOffset); // https://www.desmos.com/calculator/dminewe5vs
-            double Direction3 = Math.cos(theta - YawOffset); //this probably will work or maybe not, idk
+            double yawOffsetRAD = Math.toRadians(YawOffsetDEG);
+            double Direction1 = Math.sin(theta + Math.PI/4 - yawOffsetRAD); // https://www.desmos.com/calculator/rqqamhfeek
+            double Direction2 = Math.sin(theta - Math.PI/4 - yawOffsetRAD); // https://www.desmos.com/calculator/dminewe5vs
+            double Direction3 = Math.cos(theta - yawOffsetRAD); //this probably will work or maybe not, idk
 
             //https://www.desmos.com/calculator/5h9hzufufh
 
@@ -380,7 +381,7 @@ public class Teleop extends LinearOpMode {
                 rightBackPower  = 1;
                 frontPower      = 1;
             }
-            YawOffset = resetYaw();
+            YawOffsetDEG = resetYawDEG();
 
             if (ButtonMonitor.Pressed(buttonName.left_stick_button)) //make the other controller rumble
                 gamepad2.rumble(100);
@@ -426,17 +427,19 @@ public class Teleop extends LinearOpMode {
             // Send calculated power to wheels
             leftBackDrive.setPower(leftBackPower);
             rightBackDrive.setPower(rightBackPower);
+
             if (hypotenuse>=.1){
                 frontDrive.setPower(frontPower);
                 lastHeading = Yaw;
             }
             else {
-                frontDrive.setPower( PIDHeadingCorrect(lastHeading, true) );
+                frontDrive.setPower( PIDHeadingCorrect(lastHeading, false) );
             }
 
             // Show the elapsed game time and wheel power.
 
             telemetry.addData("Theta value\t", "%4.2f", theta);
+            telemetry.addData("Hypotenuse value\t", "%4.2f", hypotenuse);
             telemetry.addData("Theta value (deg)\t", "%4.2f", (theta*(180/Math.PI)+360)%360);
             telemetry.addLine();
             telemetry.addData("X - Roll\t", "%4.2f", Roll);
@@ -478,11 +481,11 @@ public class Teleop extends LinearOpMode {
         return speed > 1 ? 1 : (speed < -1 ? -1 : speed);
     }
 
-    private double resetYaw() {
+    private double resetYawDEG() {
         double Yaw = BHI260AP.getRobotOrientation(
                 AxesReference.INTRINSIC,
                 AxesOrder.XYZ,
-                AngleUnit.RADIANS
+                AngleUnit.DEGREES
         ).thirdAngle;
         Yaw = Yaw<0? Yaw+360: Yaw;
         return Yaw;
