@@ -1,11 +1,13 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.acmerobotics.dashboard.config.Config;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+@Config
 public class PIController {
     private double Kp = .01;
     private double Ki = .042;
-    public double integralSumLimit = 3;
+    public static double integralSumLimit = 3;
     private double lastTarget = 0;
     private double integralSum = 0;
     private ElapsedTime PIDtime = new ElapsedTime();
@@ -28,6 +30,8 @@ public class PIController {
     }
 
     public double update(double target, double current) {
+        target -= 3600;
+        current -= 3600;
         double error = target-current;
         double seconds = PIDtime.seconds();
         double p = Kp * error;

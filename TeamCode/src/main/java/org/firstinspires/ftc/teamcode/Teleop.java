@@ -30,6 +30,7 @@
 package org.firstinspires.ftc.teamcode;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.MultipleTelemetry;
 import com.qualcomm.hardware.lynx.LynxModule;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
@@ -92,8 +93,9 @@ import java.util.List;
 
 //BHI260AP is the IMU
 
+@Config
 @TeleOp(name="3 wheelie funsies", group="OpMode")
-public class                           Teleop extends LinearOpMode {
+public class Teleop extends LinearOpMode {
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime           = new ElapsedTime();
     private DcMotor leftBackDrive         = null;
@@ -103,7 +105,7 @@ public class                           Teleop extends LinearOpMode {
     private final static double LowerBy = 1.5;
     //private static boolean GP2Initialized = false;
 
-    static double LowerByDef = 1;
+    public static double LowerByDef = 1.5;
 
     static double Kp=.001, Ki=0.001;
     PIController HeadingPID = new PIController();
@@ -310,6 +312,10 @@ public class                           Teleop extends LinearOpMode {
             if (ButtonMonitor.wasPressed(buttonName.cross))
                 YawOffsetDEG = resetYawDEG();
             if (ButtonMonitor.wasPressed(buttonName.square))
+                YawOffsetDEG = resetYawDEG();
+            if (ButtonMonitor.wasPressed(buttonName.circle))
+                YawOffsetDEG = 0;
+            if (ButtonMonitor.wasPressed(buttonName.triangle))
                 BHI260AP.resetYaw();
 
             double yawOffsetRAD = Math.toRadians(YawOffsetDEG);
@@ -455,9 +461,9 @@ public class                           Teleop extends LinearOpMode {
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Pressed, Low Power Mode?", "%s %s", ButtonMonitor.buttonMap.get(buttonName.share).toString(), LowerModeToggle? "yuh" : "nuh");
             telemetry.addData("Pressed, Float Mode?", "%s %s", ButtonMonitor.buttonMap.get(buttonName.options).toString(), ZPFloatToggle? "Float" : "Brake");
-            telemetry.addData("Front", "%4.2f", frontPower);
+            telemetry.addData("Front ", "%4.2f", frontPower);
             telemetry.addData("Back  left/Right", "%4.2f, %4.2f", leftBackPower, rightBackPower);
-            telemetry.addData("Front", "%d", frontEncoderPos);
+            telemetry.addData("Front Encoder", "%d", frontEncoderPos);
             telemetry.addData("Back left/Right Encoders","%d, %d", rightBackDriveEncoderPos, leftBackDriveEncoderPos);
             //telemetry.addData("2m Dis", "Inch: %1.3f, Cm: %1.3f", REV2mDistance.getDistance(DistanceUnit.INCH), REV2mDistance.getDistance(DistanceUnit.CM));
             telemetry.update();
