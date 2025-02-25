@@ -105,7 +105,7 @@ public class                           Teleop extends LinearOpMode {
 
     static double LowerByDef = 1;
 
-    static double Kp=.00001, Ki=0.0;
+    static double Kp=.001, Ki=0.001;
     PIController HeadingPID = new PIController();
 
     @Override
@@ -425,15 +425,19 @@ public class                           Teleop extends LinearOpMode {
             */
 
             // Send calculated power to wheels
-            leftBackDrive.setPower(leftBackPower);
-            rightBackDrive.setPower(rightBackPower);
+
 
             if (hypotenuse>=.1){
                 frontDrive.setPower(frontPower);
+                leftBackDrive.setPower(leftBackPower);
+                rightBackDrive.setPower(rightBackPower);
                 lastHeading = Yaw;
             }
             else {
-                frontDrive.setPower( PIDHeadingCorrect(lastHeading, false) );
+                double a = PIDHeadingCorrect(lastHeading, false);
+                frontDrive.setPower(a);
+                leftBackDrive.setPower(leftBackPower+a);
+                rightBackDrive.setPower(rightBackPower-a);
             }
 
             // Show the elapsed game time and wheel power.
@@ -446,6 +450,7 @@ public class                           Teleop extends LinearOpMode {
             telemetry.addData("Y - Pitch\t", "%4.2f", Pitch);
             telemetry.addData("Z - Yaw\t", "%4.2f", Yaw);
             telemetry.addLine();
+            telemetry.addData("lastHeading\t", "%4.2f", lastHeading);
             telemetry.addData("Directions", "%4.2f %4.2f %4.2f", Direction1, Direction2,  Direction3);
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Pressed, Low Power Mode?", "%s %s", ButtonMonitor.buttonMap.get(buttonName.share).toString(), LowerModeToggle? "yuh" : "nuh");
@@ -472,11 +477,15 @@ public class                           Teleop extends LinearOpMode {
         if (isRad){
             tarAngle = Math.toDegrees(tarAngle);
         }
+        tarAngle += 360;
+
         double Yaw = BHI260AP.getRobotOrientation(
                 AxesReference.INTRINSIC,
                 AxesOrder.XYZ,
                 AngleUnit.DEGREES
         ).thirdAngle;
+        Yaw = Yaw<0? Yaw+360: Yaw;
+        Yaw += 360;
         double speed = HeadingPID.update(tarAngle, Yaw);
         return speed > 1 ? 1 : (speed < -1 ? -1 : speed);
     }

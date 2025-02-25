@@ -47,6 +47,6 @@ public class DirectionTester extends OpMode {
     public void loop() {
         leftBackDrive.setPower(gamepad1.square? 1: 0);
         rightBackDrive.setPower(gamepad1.circle? 1: 0);
-        frontDrive.setPower(gamepad1.triangle? 1: 0); //should go left
+        frontDrive.setPower(gamepad1.triangle? 1: 0); //should go right
     }
 }
