@@ -30,8 +30,6 @@ public class PIController {
     }
 
     public double update(double target, double current) {
-        target -= 3600;
-        current -= 3600;
         double error = target-current;
         double seconds = PIDtime.seconds();
         double p = Kp * error;

@@ -94,8 +94,8 @@ import java.util.List;
 //BHI260AP is the IMU
 
 @Config
-@TeleOp(name="PID (A little unstable)", group="OpMode")
-public class Teleop extends LinearOpMode {
+@TeleOp(name="NoPIDTeleop", group="OpMode")
+public class TeleopPIDLess extends LinearOpMode {
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime           = new ElapsedTime();
     private DcMotor leftBackDrive         = null;
@@ -106,9 +106,6 @@ public class Teleop extends LinearOpMode {
     //private static boolean GP2Initialized = false;
 
     public static double LowerByDef = 1.5;
-    public static double Kp = 0.001;
-    public static double Ki = 0.0015;
-    PIController HeadingPID = new PIController();
 
     @Override
     public void runOpMode() {
@@ -160,11 +157,6 @@ public class Teleop extends LinearOpMode {
         leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         frontDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        //final double GearRatio3 =  2.89;
-        final double GearRatio4 = 3.61;
-        final double GearRatio5 = 5.23;
-        double DriveHDHexMotorCPR = 28 * GearRatio5 * GearRatio4;
-
         // Effects (just for funsies)
         Effects effects = new Effects();
 
@@ -182,7 +174,6 @@ public class Teleop extends LinearOpMode {
         gamepad1.runLedEffect(Led.build());
 
         // Wait for the game to start (driver presses START)
-
         telemetry.update();
         List<LynxModule> Hubs = hardwareMap.getAll(LynxModule.class); //I took this lynx thingy from gm0's bulk reads page https://gm0.org/en/latest/docs/software/tutorials/bulk-reads.html
 
@@ -211,7 +202,6 @@ public class Teleop extends LinearOpMode {
         Buttons ButtonMonitor = new Buttons(false);
         setZPBrake();
         boolean ZPFloatToggle = false;
-        double lastHeading = 0; //ONLY used for heading PID
         BHI260AP.resetYaw();
         while (opModeIsActive()) {
             //previousGamepad1.copy(currentGamepad1); //gamepad from last iteration
@@ -222,8 +212,6 @@ public class Teleop extends LinearOpMode {
             }
 
             ButtonMonitor.update();
-            HeadingPID.setKi(Ki);
-            HeadingPID.setKp(Kp);
 
             int rightBackDriveEncoderPos  = rightBackDrive.getCurrentPosition();
             int leftBackDriveEncoderPos   = leftBackDrive.getCurrentPosition();
@@ -250,11 +238,6 @@ public class Teleop extends LinearOpMode {
             if (ButtonMonitor.isPressed(buttonName.share)){
                 LowerPowerBy = 2;
             }
-
-            // Rising Edge Detector to dance
-            // while ((gamepad1.left_stick_button && gamepad1.right_stick_button) && !(previousGamepad1.left_stick_button && previousGamepad1.right_stick_button)) {
-            //     happyDanceRobot();
-            // }
 
             double max;
             // POV Mode uses left joystick to go forward & strafe, and right joystick to rotate.
@@ -312,10 +295,8 @@ public class Teleop extends LinearOpMode {
             YawOffsetDEG = Yaw;
             if (ButtonMonitor.Pressed(buttonName.circle))
                 YawOffsetDEG = 0;
-            if (ButtonMonitor.Pressed(buttonName.triangle)) {
+            if (ButtonMonitor.Pressed(buttonName.triangle))
                 BHI260AP.resetYaw();
-                lastHeading = 0;
-            }
 
             double yawOffsetRAD = Math.toRadians(YawOffsetDEG);
             double Direction1 = Math.sin(theta + Math.PI/4 - yawOffsetRAD); // https://www.desmos.com/calculator/rqqamhfeek
@@ -368,26 +349,22 @@ public class Teleop extends LinearOpMode {
             //    rightBackPower  = Dpadirection1 * hypotenuse; //  1
             //}
 
-            if (gamepad1.left_trigger  != 0 || gamepad1.right_trigger != 0) {
-                leftBackPower -= gamepad1.left_trigger;
-                rightBackPower += gamepad1.left_trigger;
-                frontPower -= gamepad1.left_trigger;//LowerPowerBy;
-                leftBackPower += gamepad1.right_trigger;
-                rightBackPower -= gamepad1.right_trigger;
-                frontPower += gamepad1.right_trigger;//LowerPowerBy;
-                lastHeading = AngleUnit.normalizeDegrees(Yaw);
-            }
+            leftBackPower -= gamepad1.left_trigger;
+            rightBackPower += gamepad1.left_trigger;
+            frontPower -= gamepad1.left_trigger;
+            leftBackPower += gamepad1.right_trigger;
+            rightBackPower -= gamepad1.right_trigger;
+            frontPower += gamepad1.right_trigger;
+
             if (ButtonMonitor.Pressed(buttonName.right_bumper)) {
                 leftBackPower   += 1;
                 rightBackPower  -= 1;
                 frontPower      += 1;
-                lastHeading = AngleUnit.normalizeDegrees(Yaw);
             }
             if (ButtonMonitor.Pressed(buttonName.left_bumper)) {
                 leftBackPower   -= 1;
                 rightBackPower  += 1;
                 frontPower      -= 1;
-                lastHeading = AngleUnit.normalizeDegrees(Yaw);
             }
 
             /*leftBackPower  *= 2;
@@ -419,12 +396,6 @@ public class Teleop extends LinearOpMode {
             */
 
             // Send calculated power to wheels
-            double a = PIDHeadingCorrect(lastHeading, false);
-
-            frontPower -= a;
-            leftBackPower -= a;
-            rightBackPower += a;
-
             max = Math.max(Math.abs(frontPower), Math.abs(leftBackPower));
             max = Math.max(max, Math.abs(rightBackPower));
             if (max > 1.0) {
@@ -446,7 +417,6 @@ public class Teleop extends LinearOpMode {
             telemetry.addData("Z - Yaw\t", "%4.2f", Yaw);
             telemetry.addData("Z - Yaw (Normalized)\t", "%4.2f", AngleUnit.normalizeDegrees(Yaw));
             telemetry.addLine();
-            telemetry.addData("lastHeading\t", "%4.2f", lastHeading);
             telemetry.addData("Directions", "%4.2f %4.2f %4.2f", Direction1, Direction2,  Direction3);
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addData("Pressed, Low Power Mode?", "%s %s", ButtonMonitor.buttonMap.get(buttonName.share).toString(), LowerModeToggle? "yuh" : "nuh");
@@ -467,29 +437,6 @@ public class Teleop extends LinearOpMode {
     private void setZPBrake() {
         leftBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         rightBackDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-    }
-
-    public double PIDHeadingCorrect(double tarAngle, boolean isRad){
-        if (isRad){
-            tarAngle = Math.toDegrees(tarAngle);
-        }
-        double Yaw = BHI260AP.getRobotOrientation(
-                AxesReference.INTRINSIC,
-                AxesOrder.XYZ,
-                AngleUnit.DEGREES
-        ).thirdAngle;
-        double speed = HeadingPID.update(tarAngle, Yaw);
-        return speed > 1 ? 1 : (speed < -1 ? -1 : speed);
-    }
-
-    private double currentYawDEG360() {
-        double Yaw = BHI260AP.getRobotOrientation(
-                AxesReference.INTRINSIC,
-                AxesOrder.XYZ,
-                AngleUnit.DEGREES
-        ).thirdAngle;
-        Yaw = Yaw<0? Yaw+360: Yaw;
-        return Yaw;
     }
 
     // This button status thing is inspired by u/m0stlyharmless_user and u/fusionforscience on reddit from a post 8y ago :)
